@@ -66,7 +66,7 @@ def generate_pages_recursive(from_path, template_path, dest_path, basepath):
 
 
 def main(basepath):
-    migrate('static', 'public')
+    migrate('static', 'docs')
     generate_pages_recursive("content", "template.html", "docs", basepath)
 
 if __name__ == "__main__":

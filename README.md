@@ -36,6 +36,6 @@ I'll add multi-formatting functionality later.
 > "I am in fact a Hobbit in all but size."
 >
 > -- J.R.R. Tolkien
-  gets rendered as
+gets rendered as
 > "I am in fact a Hobbit in all but size."-- J.R.R. Tolkien
-  which is just... Ick.
+which is just... Ick.
