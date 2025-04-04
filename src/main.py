@@ -1,6 +1,7 @@
 from textnode import TextNode, TextType
 from markdown_to_nodes import markdown_to_html_node
 import os, shutil, os.path, re
+import sys
 
 from markdown_to_nodes import create_quote_parent_node
 
@@ -25,7 +26,7 @@ def extract_title(markdown):
             return line[2:]
     raise Exception("No header found!")
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
     print(f"Generating page from {from_path} to {dest_path} using {template_path}")
     if not os.path.exists(from_path) or not os.path.isfile(from_path):
         raise Exception(f"No file exists at {from_path}")
@@ -39,6 +40,8 @@ def generate_page(from_path, template_path, dest_path):
     title = extract_title(md)
     template = template.replace("{{ Title }}", title)
     template = template.replace("{{ Content }}", html)
+    template = template.replace("href=\"/", f"href=\"{basepath}")
+    template = template.replace("src=\"/", f"src=\"{basepath}")
     # We need to do some funny nonsense with dest_path to make sure
     # that all of the intermediate directories exist.
     split_dest_path = dest_path.split("/")
@@ -50,21 +53,26 @@ def generate_page(from_path, template_path, dest_path):
     with open(dest_path, "w") as f:
         f.write(template)
 
-def generate_pages_recursive(from_path, template_path, dest_path):
+def generate_pages_recursive(from_path, template_path, dest_path, basepath):
     if os.path.isfile(from_path) and from_path[-3:] == ".md":
         if dest_path[-3:] == ".md":
             dest_path = dest_path[:-3] + ".html"
-        generate_page(from_path, template_path, dest_path)
+        generate_page(from_path, template_path, dest_path, basepath)
         return
     for item in os.listdir(from_path):
-        generate_pages_recursive(os.path.join(from_path, item), template_path, os.path.join(dest_path, item))
+        generate_pages_recursive(os.path.join(from_path, item), template_path, os.path.join(dest_path, item), basepath)
     return
 
 
 
-def main():
+def main(basepath):
     migrate('static', 'public')
-    generate_pages_recursive("content", "template.html", "public")
+    generate_pages_recursive("content", "template.html", "docs", basepath)
 
 if __name__ == "__main__":
-    main()
+    args = sys.argv
+    if len(args) > 1:
+        basepath = args[1]
+    else:
+        basepath = "/"
+    main(basepath)
