@@ -1,5 +1,5 @@
 from enum import Enum
-from htmlnode import LeafNode
+from htmlnode import LeafNode, ParentNode
 
 class TextType(Enum):
     PARAGRAPH = None
@@ -11,29 +11,33 @@ class TextType(Enum):
     STRIKETHROUGH = "s"
 
 class TextNode:
-    def __init__(self, text, text_type, url = None):
+    def __init__(self, text, text_types, url = None):
         self.text = text
-        self.text_type = text_type
+        self.text_types = text_types
         self.url = url
     
     def __eq__(self, other):
         if self.text != other.text:
             return False
-        if self.text_type != other.text_type:
+        if self.text_types != other.text_types:
             return False
         if self.url != other.url:
             return False
         return True
     
     def __repr__(self):
-        return f"TextNode(\"{self.text}\", {self.text_type}, {self.url})"
+        return f"TextNode(\"{self.text}\", {self.text_types}, {self.url})"
     
     def to_html_node(self):
-        if self.text_type == TextType.LINK:
-            return LeafNode("a", self.text, {"href": self.url})
-        if self.text_type == TextType.IMAGE:
-            return LeafNode("img", self.text, {"src": self.url, "alt": ""})
-        if self.text_type == TextType.PARAGRAPH:
-            return LeafNode(None, self.text)
-        return LeafNode(self.text_type.value, self.text)
+        types = self.text_types
+        node = LeafNode(None, self.text)
+        while types != []:
+            current_type = types.pop()
+            if current_type == TextType.LINK:
+                node = ParentNode("a", [node], {"href": self.url})
+            elif current_type == TextType.IMAGE:
+                node = ParentNode("img", [node], {"src": self.url, "alt": ""})
+            else:
+                node = ParentNode(current_type.value, [node])
+        return node
 

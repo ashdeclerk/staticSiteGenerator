@@ -23,7 +23,6 @@ The rough outline is:
 
 ## Known Icks
 (Technically not bugs per se, but things that I dislike.)
-- We aren't doing nested inline elements, e.g. _italic and **bold** simultaneously_.
 - Ordered lists ignore the original numbering, so a list that was originally 2) 3) 5) for whatever reason becomes  1) 2) 3).
 - Ordered lists only handle numbers, not e.g. Roman numerals.
 - We can't do sublists.

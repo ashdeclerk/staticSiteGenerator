@@ -25,9 +25,9 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
         # pieces are "inside" the delimiter.
         for index, piece in enumerate(pieces):
             if index % 2 and len(piece) > 0:
-                new_nodes.append(TextNode(piece, text_type))
+                new_nodes.append(TextNode(piece, node.text_types + [text_type]))
             elif len(piece) > 0:
-                new_nodes.append(TextNode(piece, node.text_type, node.url))
+                new_nodes.append(TextNode(piece, node.text_types, node.url))
     return new_nodes
 
 def extract_markdown_images(text):
@@ -52,14 +52,14 @@ def split_nodes_image(old_nodes):
         while idx < len(images):
             text_piece = node.text[starting_idx:images[idx].span()[0]]
             if len(text_piece) > 0:
-                new_nodes.append(TextNode(text_piece, node.text_type, node.url))
+                new_nodes.append(TextNode(text_piece, node.text_types, node.url))
             img = extract_markdown_images(images[idx].group())[0]
-            new_nodes.append(TextNode(img[0], TextType.IMAGE, img[1]))
+            new_nodes.append(TextNode(img[0], node.text_types + [TextType.IMAGE], img[1]))
             starting_idx = images[idx].span()[1]
             idx += 1
         text_piece = node.text[starting_idx:]
         if len(text_piece) > 0:
-            new_nodes.append(TextNode(text_piece, node.text_type, node.url))
+            new_nodes.append(TextNode(text_piece, node.text_types, node.url))
     return new_nodes
 
 def split_nodes_link(old_nodes):
@@ -72,18 +72,18 @@ def split_nodes_link(old_nodes):
         while idx < len(links):
             text_piece = node.text[starting_idx:links[idx].span()[0]]
             if len(text_piece) > 0:
-                new_nodes.append(TextNode(text_piece, node.text_type, node.url))
+                new_nodes.append(TextNode(text_piece, node.text_types, node.url))
             lnk = extract_markdown_links(links[idx].group())[0]
-            new_nodes.append(TextNode(lnk[0], TextType.LINK, lnk[1]))
+            new_nodes.append(TextNode(lnk[0], node.text_types + [TextType.LINK], lnk[1]))
             starting_idx = links[idx].span()[1]
             idx += 1
         text_piece = node.text[starting_idx:]
         if len(text_piece) > 0:
-            new_nodes.append(TextNode(text_piece, node.text_type, node.url))
+            new_nodes.append(TextNode(text_piece, node.text_types, node.url))
     return new_nodes
 
 def text_to_textnodes(text):
-    nodes = [TextNode(text, TextType.PARAGRAPH, None)]
+    nodes = [TextNode(text, [], None)]
     nodes = split_nodes_delimiter(nodes, "**", TextType.BOLD)
     nodes = split_nodes_delimiter(nodes, "~~", TextType.STRIKETHROUGH)
     nodes = split_nodes_delimiter(nodes, "*", TextType.ITALIC)
