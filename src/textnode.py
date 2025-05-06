@@ -8,6 +8,7 @@ class TextType(Enum):
     CODE = "code"
     LINK = "a"
     IMAGE = "img"
+    STRIKETHROUGH = "s"
 
 class TextNode:
     def __init__(self, text, text_type, url = None):

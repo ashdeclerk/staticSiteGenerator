@@ -85,6 +85,7 @@ def split_nodes_link(old_nodes):
 def text_to_textnodes(text):
     nodes = [TextNode(text, TextType.PARAGRAPH, None)]
     nodes = split_nodes_delimiter(nodes, "**", TextType.BOLD)
+    nodes = split_nodes_delimiter(nodes, "~~", TextType.STRIKETHROUGH)
     nodes = split_nodes_delimiter(nodes, "*", TextType.ITALIC)
     nodes = split_nodes_delimiter(nodes, "_", TextType.ITALIC)
     nodes = split_nodes_delimiter(nodes, "`", TextType.CODE)
