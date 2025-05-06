@@ -164,9 +164,14 @@ def create_header_parent_node(block):
     return ParentNode("h" + str(header_depth), list(map(lambda n : n.to_html_node(), text_to_textnodes(block[header_depth + 1:]))))
 
 def create_quote_parent_node(block):
-    block = block.replace("> ", "")
-    block = block.replace(">", "")
-    return ParentNode("blockquote", list(map(lambda n : n.to_html_node(), text_to_textnodes(block))))
+    block = block.replace("\n> ", "\n")
+    block = block.replace("\n>", "\n")
+    block = block[1:]
+    children = []
+    for line in block.split("\n"):
+        subchildren = list(map(lambda n : n.to_html_node(), text_to_textnodes(line + "\n")))
+        children.append(ParentNode("p", subchildren))
+    return ParentNode("blockquote", children)
 
 def create_code_parent_node(block):
     return ParentNode("pre", [LeafNode("code", block[4:-3])])

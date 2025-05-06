@@ -21,21 +21,9 @@ The rough outline is:
 5. Convert said HTMLNode to an HTML string and inject it in the template.
 6. Write that string to a file in `/docs`.
 
-## Limitations
-We are (at least for now) not allowing next inline elements, so markdown like
-'_italic and **bold** simultaneously_' will just not get handled appropriately.
-It won't error or anything, but the inner text will get rendered with just
-the innermost formatting, rather than both pieces of formatting.
-I'll add multi-formatting functionality later.
-
 ## Known Icks
 (Technically not bugs per se, but things that I dislike.)
-- Blockquotes are implemented kinda weirdly. I had to do a pair of replaces
-  that get rid of *all* >s, not just the ones at the start of a line,
-  and they don't play nice with line breaks. For example, the following quote:
-> "I am in fact a Hobbit in all but size."
->
-> -- J.R.R. Tolkien
-gets rendered as
-> "I am in fact a Hobbit in all but size."-- J.R.R. Tolkien
-which is just... Ick.
+- We aren't doing nested inline elements, e.g. _italic and **bold** simultaneously_.
+- Ordered lists ignore the original numbering, so a list that was originally 2) 3) 5) for whatever reason becomes  1) 2) 3).
+- Ordered lists only handle numbers, not e.g. Roman numerals.
+- We can't do sublists.
