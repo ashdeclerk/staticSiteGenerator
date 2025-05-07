@@ -2,14 +2,14 @@ from textnode import TextNode, TextType
 import re
 from enum import Enum
 from htmlnode import *
+from string import ascii_lowercase, ascii_uppercase
 
 class BlockType(Enum):
     PARAGRAPH = ""
     HEADING = "#"
     CODE = "`"
     QUOTE = ">"
-    UNORDERED_LIST = "*"
-    ORDERED_LIST = "1"
+    LIST = "*"
 
 
 
@@ -103,10 +103,8 @@ def block_to_block_type(text):
         return BlockType.HEADING
     if is_quote(text):
         return BlockType.QUOTE
-    if is_unordered_list(text):
-        return BlockType.UNORDERED_LIST
-    if is_ordered_list(text):
-        return BlockType.ORDERED_LIST
+    if is_list(text):
+        return BlockType.LIST
     return BlockType.PARAGRAPH
 
 def is_code(text):
@@ -120,15 +118,11 @@ def is_heading(text):
 
 def is_quote(text):
     lines = text.split("\n")
-    return all(map(lambda s : re.match(r">", s), lines))
+    return re.match(r">", lines[0]) and all(map(lambda s : re.match(r"\s*>", s), lines))
 
-def is_unordered_list(text):
+def is_list(text):
     lines = text.split("\n")
-    return all(map(lambda s : re.match(r"[-*] ", s), lines))
-
-def is_ordered_list(text):
-    lines = text.split("\n")
-    return all(map(lambda s : re.match(r"[0-9]*[.)] ", s), lines))
+    return all(map(lambda s : re.match(r"([\s]*[-*] )|([\s]*[0-9a-zA-Z]*[.)] )", s), lines))
 
 def markdown_to_html_node(text):
     md_blocks = markdown_to_blocks(text)
@@ -151,10 +145,8 @@ def create_typed_parent_node(block, block_type):
         return create_quote_parent_node(block)
     if block_type == BlockType.CODE:
         return create_code_parent_node(block)
-    if block_type == BlockType.UNORDERED_LIST:
-        return create_unordered_parent_node(block)
-    if block_type == BlockType.ORDERED_LIST:
-        return create_ordered_parent_node(block)
+    if block_type == BlockType.LIST:
+        return create_list_parent_node(block)
     
 def create_para_parent_node(block):
     block = block.replace("\n", " ")
@@ -177,17 +169,90 @@ def create_quote_parent_node(block):
 def create_code_parent_node(block):
     return ParentNode("pre", [LeafNode("code", block[4:-3])])
 
-def create_unordered_parent_node(block):
-    children = []
-    for line in block.split("\n"):
-        subchildren = list(map(lambda n : n.to_html_node(), text_to_textnodes(line[2:])))
-        children.append(ParentNode("li", subchildren))
-    return ParentNode("ul", children)
+def create_list_parent_node(block):
+    # I have decided that it's worth dealing with nested list nonsense,
+    # which means this becomes much more complicated than the original version.
+    # In particular, we need to deal with stuff based on the starting whitespace,
+    # along with figuring out whether we have an ordered or unordered list on the fly,
+    # *and* dealing with list values for each ordered list item if it's not what we expect.
+    # So, complicated.
+    lines = block.split("\n")
+    # We're just shoving this to a helper function.
+    return create_list_from_lines(lines)
 
-def create_ordered_parent_node(block):
+def create_list_from_lines(lines, depth = 0):
+    # Indentation makes things *weird*. I don't *want* to allow sublists before
+    # the first list item, because I think it's useless, but... Who knows.
+    # I'm going to do something that feels kinda hacky, but it should work.
+    # Step 1: Find the longest common prefix of all the lines.
+    base_prefix = re.match(r"\s*", lines[0]).group()
+    for line in lines:
+        if not line.startswith(base_prefix):
+            new_base_prefix_candidate = re.match(r"\s*", line).group()
+            if base_prefix.startswith(new_base_prefix_candidate):
+                base_prefix = new_base_prefix_candidate
+            else:
+                base_prefix = longest_common_prefix(base_prefix, new_base_prefix_candidate)
+    # Step 2: Tidy all of the lines.
+    for idx, line in enumerate(lines):
+        lines[idx] = line.removeprefix(base_prefix)
+    # Step 3: Make a child node for each main list line, and for each sublist.
     children = []
-    for line in block.split("\n"):
-        subchildren = list(map(lambda n : n.to_html_node(), text_to_textnodes(line[line.find(" ") + 1:])))
-        children.append(ParentNode("li", subchildren))
+    idx = 0
+    while idx < len(lines):
+        current_line = lines[idx]
+        prefix = re.match(r"\s*", current_line).group()
+        if prefix:
+            # Uh-oh, we have a sublist!
+            sublist = [current_line]
+            idx += 1
+            while idx < len(lines) and re.match(r"\s+", lines[idx]):
+                sublist.append(lines[idx])
+                idx += 1
+            children.append(create_list_from_lines(sublist, depth = depth + 1))
+        else:
+            # Yay, we're in the main list!
+            text_start = re.match(r"([0-9a-zA-Z]*[.)] )|([-*] )", current_line).end()
+            subchildren = list(map(lambda n : n.to_html_node(), text_to_textnodes(current_line[text_start:])))
+            if is_unordered_list_item(current_line):
+                children.append(ParentNode("li", subchildren, {"style": "list-style-type:" + ("disc" if depth == 0 else "circle" if depth == 1 else "square")}))
+            else:
+                # Step 1: Figure out style. We only need decimal, lower-alpha, or upper-alpha.
+                if current_line[0].islower():
+                    style = "lower-alpha"
+                elif current_line[0].isupper():
+                    style = "upper-alpha"
+                else:
+                    style = "decimal"
+                # Step 2: Figure out value. This is a pain in the butt for either alpha.
+                if style == "lower-alpha":
+                    value = 0
+                    value_string = re.match(r"[a-z]*", current_line).group()
+                    for sub_idx, let in enumerate(reversed(value_string)):
+                        value += (ascii_lowercase.find(let) + 1) * 26 ** sub_idx
+                    print(value_string, value)
+                elif style == "lower-alpha":
+                    value = 0
+                    value_string = re.match(r"[A-Z]*", current_line).group()
+                    for sub_idx, let in enumerate(reversed(value_string)):
+                        value += (ascii_uppercase.find(let) + 1) * 26 ** sub_idx
+                else:
+                    value = int(re.match(r"[0-9]*", current_line).group())
+                children.append(ParentNode("li", subchildren, {"style": "list-style-type:" + style, "value": value}))
+            idx += 1
     return ParentNode("ol", children)
 
+def is_unordered_list_item(string):
+    return bool(re.match(r"[\s]*[*-] ", string))
+
+def is_ordered_list_item(string):
+    return bool(re.match(r"[\s]*[0-9a-zA-Z] ", string))
+
+def longest_common_prefix(string1, string2):
+    p = ''
+    for idx, let in enumerate(string1):
+        if string2[idx] == let:
+            p += let
+        else:
+            break
+    return p

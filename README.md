@@ -21,8 +21,7 @@ The rough outline is:
 5. Convert said HTMLNode to an HTML string and inject it in the template.
 6. Write that string to a file in `/docs`.
 
-## Known Icks
-(Technically not bugs per se, but things that I dislike.)
-- Ordered lists ignore the original numbering, so a list that was originally 2) 3) 5) for whatever reason becomes  1) 2) 3).
-- Ordered lists only handle numbers, not e.g. Roman numerals.
-- We can't do sublists.
+## Future plans
+- Add support for tables
+- Add support for checkboxes (non-functional, but good for displaying stuff)
+
